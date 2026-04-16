@@ -1,13 +1,715 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>My Google AI Studio App</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IOT Boat - Diorama 2.5D</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.25);
+            --glass-border: rgba(255, 255, 255, 0.3);
+            --morning-bg: linear-gradient(to bottom, #FF9A8B, #F7D794);
+            --afternoon-bg: linear-gradient(to bottom, #FF9A8B, #FF6A88);
+            --night-bg: linear-gradient(to bottom, #1E3799, #0D1B4D, #050A1F);
+        }
 
+        * {
+            font-family: 'Quicksand', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: var(--morning-bg);
+            transition: background 2s ease;
+        }
+
+        .perspective-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-panel {
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 2D Boat Bobbing Animation */
+        @keyframes boat-bobbing {
+            0%, 100% { transform: translate(-50%, 0) rotate(2deg); }
+            50% { transform: translate(-50%, 15px) rotate(-2deg); }
+        }
+
+        .boat-container {
+            position: absolute;
+            bottom: 38%; /* Sitting between mid and front waves */
+            left: 50%;
+            width: 350px;
+            z-index: 40; /* Between water-mid (30) and water-front (50) */
+            animation: boat-bobbing 3s ease-in-out infinite;
+            pointer-events: none;
+            filter: contrast(1.1) brightness(0.95) drop-shadow(0 20px 30px rgba(0,0,0,0.5));
+        }
+
+        .boat-container svg {
+            pointer-events: auto;
+        }
+
+        /* 2D Wave Animations */
+        @keyframes wave-move {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        .water-layer {
+            position: absolute;
+            bottom: 0;
+            width: 200%;
+            height: 100%;
+            background-repeat: repeat-x;
+            animation: wave-move 10s linear infinite;
+            filter: contrast(1.2);
+        }
+
+        .water-back {
+            z-index: 10;
+            opacity: 0.6;
+            height: 90%;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 100'%3E%3Cpath d='M0 50 Q 200 0 400 50 Q 600 100 800 50 L 800 100 L 0 100 Z' fill='%231E3799'/%3E%3C/svg%3E");
+            animation-duration: 15s;
+        }
+
+        .water-mid {
+            z-index: 30;
+            opacity: 0.8;
+            height: 75%;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 100'%3E%3Cpath d='M0 50 Q 200 100 400 50 Q 600 0 800 50 L 800 100 L 0 100 Z' fill='%230D1B4D'/%3E%3C/svg%3E");
+            animation-duration: 10s;
+            animation-direction: reverse;
+        }
+
+        .water-front {
+            z-index: 50;
+            height: 60%;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 100'%3E%3Cpath d='M0 50 Q 200 20 400 50 Q 600 80 800 50 L 800 100 L 0 100 Z' fill='%23050A1F'/%3E%3C/svg%3E");
+            animation-duration: 7s;
+        }
+
+        /* Cloud Shapes */
+        .cloud-container {
+            position: absolute;
+            pointer-events: none;
+            z-index: 5; /* Behind water and boat */
+        }
+
+        .cloud-body {
+            width: 192px;
+            height: 64px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 9999px;
+            filter: blur(2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        .cloud-bump {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 50%;
+            filter: blur(2px);
+        }
+
+        @keyframes float-across {
+            0% { left: -20%; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { left: 120%; opacity: 0; }
+        }
+
+        .floating-object {
+            position: absolute;
+            z-index: 35; /* Between water-mid and water-front */
+            animation: float-across linear infinite;
+            filter: drop-shadow(0 10px 10px rgba(0,0,0,0.4)) contrast(1.2);
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+        }
+
+        /* Modal Transitions */
+        .modal-overlay {
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-content {
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .hidden-modal {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .hidden-modal .modal-content {
+            transform: scale(0.8) translateY(50px) rotateX(20deg);
+        }
+
+        /* Lantern Pulse */
+        @keyframes lantern-pulse {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.5); opacity: 1; }
+        }
+        .lantern-glow {
+            animation: lantern-pulse 2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app" class="perspective-container">
+        <!-- 1. SKY LAYER -->
+        <div id="sky-layer" class="absolute inset-0 pointer-events-none">
+            <!-- Sun/Moon will be injected here -->
+            <div id="celestial-body"></div>
+            <!-- Stars for night -->
+            <div id="stars-container" class="absolute inset-0 hidden"></div>
+            <!-- Clouds -->
+            <div id="clouds-container" class="absolute inset-0"></div>
+        </div>
+
+        <!-- 2. 2D WATER LAYERS -->
+        <div class="absolute bottom-0 w-full h-[70%] overflow-hidden">
+            <div class="water-layer water-back"></div>
+            <div class="water-layer water-mid"></div>
+            <div class="water-layer water-front"></div>
+            
+            <!-- Splash Particles -->
+            <div id="splashes-container" class="absolute inset-0 z-[45]"></div>
+        </div>
+
+        <!-- 4. FLOATING LIFE & OBJECTS -->
+        <div id="floating-container" class="absolute bottom-0 w-full h-[70%] pointer-events-none z-15"></div>
+
+        <!-- 5. THE IOT BOAT -->
+        <div class="boat-container">
+            <svg viewBox="0 0 400 300" class="w-full filter drop-shadow-[0_40px_20px_rgba(0,0,0,0.3)]">
+                <defs>
+                    <linearGradient id="hullGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#A0522D" />
+                        <stop offset="100%" stopColor="#5D4037" />
+                    </linearGradient>
+                    <linearGradient id="roofGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stopColor="#43A047" />
+                        <stop offset="100%" stopColor="#1B5E20" />
+                    </linearGradient>
+                    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+                        <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
+                        <feOffset dx="2" dy="2" result="offsetblur" />
+                        <feComponentTransfer><feFuncA type="linear" slope="0.5" /></feComponentTransfer>
+                        <feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge>
+                    </filter>
+                </defs>
+
+                <!-- Hull -->
+                <ellipse cx="200" cy="160" rx="150" ry="60" fill="#5d4037" />
+                <path d="M50 150 C 50 200, 350 200, 350 150 C 350 100, 50 100, 50 150" fill="url(#hullGrad)" stroke="#3e2723" strokeWidth="4" />
+                
+                <!-- Cabin -->
+                <g filter="url(#shadow)">
+                    <rect x="150" y="80" width="100" height="70" rx="20" fill="#EFEBE9" />
+                    <rect x="150" y="70" width="100" height="20" rx="10" fill="url(#roofGrad)" />
+                    <circle cx="185" cy="115" r="12" fill="#81D4FA" stroke="#455A64" strokeWidth="2" />
+                    <circle cx="215" cy="115" r="12" fill="#81D4FA" stroke="#455A64" strokeWidth="2" />
+                </g>
+
+                <!-- Mast & Flag -->
+                <line x1="200" y1="100" x2="200" y2="20" stroke="#5d4037" strokeWidth="6" strokeLinecap="round" />
+                <path id="flag" d="M200 30 Q 230 20 260 30 L 260 60 Q 230 50 200 60 Z" fill="#ff5252">
+                    <animate attributeName="d" values="M200 30 Q 230 20 260 30 L 260 60 Q 230 50 200 60 Z; M200 30 Q 230 40 260 30 L 260 60 Q 230 70 200 60 Z; M200 30 Q 230 20 260 30 L 260 60 Q 230 50 200 60 Z" dur="2s" repeatCount="indefinite" />
+                </path>
+
+                <!-- Lantern -->
+                <g transform="translate(140, 140)">
+                    <rect x="-5" y="0" width="10" height="15" fill="#ffd600" rx="2" />
+                    <circle cx="0" cy="7" r="3" fill="white" class="lantern-glow" />
+                </g>
+
+                <!-- Deck Clutter -->
+                <g transform="translate(280, 160)">
+                    <path d="M0 0 L20 10 L20 30 L0 20 Z" fill="#795548" />
+                    <ellipse cx="10" cy="0" rx="10" ry="5" fill="#a1887f" />
+                </g>
+            </svg>
+
+            <!-- Fishing Line -->
+            <div id="fishing-line" class="absolute top-[20%] left-1/2 w-[2px] bg-white/50 origin-top hidden">
+                <div class="absolute bottom-0 left-[-5px] w-3 h-3 bg-red-500 rounded-full animate-bounce"></div>
+            </div>
+        </div>
+
+        <!-- 6. UI OVERLAYS -->
+        <div class="absolute top-8 left-8 z-50 flex flex-col gap-4">
+            <div class="glass-panel flex items-center gap-4 p-4 pr-6">
+                <div class="w-3 h-3 bg-[#55E6C1] rounded-full shadow-[0_0_10px_#55E6C1]"></div>
+                <div class="flex items-center gap-3">
+                    <span class="text-white font-bold">IOT Boat v2.5</span>
+                    <div class="w-[1px] h-5 bg-white/30"></div>
+                    <span class="text-white/80 text-xs">Trạng thái: Đang trôi tự do</span>
+                </div>
+            </div>
+
+            <div class="glass-panel p-5 w-64 space-y-3">
+                <div class="flex justify-between text-white/90 text-sm"><span>Nhiệt độ nước</span><span class="font-bold">24°C</span></div>
+                <div class="flex justify-between text-white/90 text-sm"><span>Độ mặn</span><span class="font-bold">3.2%</span></div>
+                <div class="flex justify-between text-white/90 text-sm"><span>Tốc độ gió</span><span class="font-bold">12 km/h</span></div>
+                <div class="pt-2">
+                    <div class="h-1 w-full bg-white/20 rounded-full overflow-hidden">
+                        <div class="h-full bg-[#FFD32D] w-[65%] rounded-full"></div>
+                    </div>
+                    <p class="text-[10px] text-white/60 mt-1">Năng lượng mặt trời: 65%</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="absolute top-6 right-6 z-50 flex flex-col gap-4">
+            <div id="music-toggle" class="glass-panel p-3 cursor-pointer hover:scale-110 transition-transform">
+                <i data-lucide="waves" class="text-white"></i>
+            </div>
+            <audio id="bg-music" loop src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"></audio>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <div class="absolute bottom-10 left-1/2 -translate-x-1/2 z-50">
+            <div class="glass-panel flex items-center gap-6 p-4 px-8">
+                <button onclick="openModal('upload')" class="flex flex-col items-center gap-1 group transition-all transform hover:scale-110 active:scale-95">
+                    <div class="p-3 rounded-xl bg-white/10 group-hover:bg-white/30 transition-colors text-white shadow-inner"><i data-lucide="camera"></i></div>
+                    <span class="text-white text-[10px] font-bold uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity">Tải ảnh</span>
+                </button>
+                <button id="fish-btn" onclick="startFishing()" class="flex flex-col items-center gap-1 group transition-all transform hover:scale-110 active:scale-95">
+                    <div class="p-3 rounded-xl bg-white/10 group-hover:bg-white/30 transition-colors text-white shadow-inner"><i data-lucide="fish" id="fish-icon"></i></div>
+                    <span class="text-white text-[10px] font-bold uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity">Thả câu</span>
+                </button>
+                <button onclick="openModal('honorary')" class="flex flex-col items-center gap-1 group transition-all transform hover:scale-110 active:scale-95">
+                    <div class="p-3 rounded-xl bg-white/10 group-hover:bg-white/30 transition-colors text-white shadow-inner"><i data-lucide="award"></i></div>
+                    <span class="text-white text-[10px] font-bold uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity">Tôn vinh</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 7. MODALS -->
+        <div id="modal-overlay" class="fixed inset-0 z-[100] flex items-center justify-center p-6 modal-overlay hidden-modal">
+            <div class="relative w-full max-w-2xl modal-content">
+                <div class="glass-panel p-8 bg-white/90 border-white relative">
+                    <button onclick="closeModal()" class="absolute top-4 right-4 p-2 hover:bg-black/10 rounded-full transition-colors">
+                        <i data-lucide="x"></i>
+                    </button>
+
+                    <!-- Upload Modal -->
+                    <div id="modal-upload" class="hidden space-y-6">
+                        <h2 class="text-3xl font-bold text-blue-900">Tạo sinh vật nước ngọt</h2>
+                        <form id="creature-form" class="space-y-4">
+                            <input name="name" required type="text" placeholder="Tên sinh vật..." class="w-full p-4 rounded-xl bg-blue-50 border-2 border-blue-100 focus:border-blue-400 outline-none">
+                            <select name="type" class="w-full p-4 rounded-xl bg-blue-50 border-2 border-blue-100 outline-none">
+                                <option>Cá</option><option>Tôm</option><option>Cua</option><option>Rùa</option>
+                            </select>
+                            <div id="upload-zone" class="border-2 border-dashed border-blue-200 rounded-2xl p-10 text-center hover:bg-blue-50 transition-colors cursor-pointer overflow-hidden relative">
+                                <div id="upload-placeholder">
+                                    <i data-lucide="camera" class="mx-auto text-blue-300 mb-2 w-12 h-12"></i>
+                                    <p class="text-blue-400">Tải ảnh khuôn mặt của bạn</p>
+                                </div>
+                                <img id="preview-img" class="absolute inset-0 w-full h-full object-cover hidden">
+                                <input type="file" id="file-input" class="hidden" accept="image/*">
+                            </div>
+                            <button type="submit" id="summon-btn" class="w-full py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-lg disabled:opacity-50">
+                                Tạo sinh vật ngay!
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Fishing Result Modal -->
+                    <div id="modal-fishing-result" class="hidden text-center space-y-6">
+                        <h2 class="text-3xl font-bold text-blue-900">Chúc mừng!</h2>
+                        <div class="relative w-64 h-64 mx-auto rounded-3xl overflow-hidden shadow-2xl border-4 border-white">
+                            <img id="result-img" src="" alt="Catch" class="w-full h-full object-cover">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-4">
+                                <p id="result-species" class="text-white font-bold"></p>
+                            </div>
+                        </div>
+                        <p id="result-desc" class="text-blue-800 text-lg italic"></p>
+                        <button onclick="closeModal()" class="px-8 py-3 bg-blue-600 text-white rounded-full font-bold hover:bg-blue-700 transition-all">Tuyệt vời!</button>
+                    </div>
+
+                    <!-- Honorary Modal -->
+                    <div id="modal-honorary" class="hidden space-y-6">
+                        <h2 class="text-3xl font-bold text-blue-900">Ngư dân danh dự</h2>
+                        <div id="fishermen-grid" class="grid grid-cols-2 md:grid-cols-4 gap-6"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fishing Toast -->
+        <div id="fishing-toast" class="fixed top-10 left-1/2 -translate-x-1/2 z-[200] hidden">
+            <div class="glass-panel px-8 py-4 bg-blue-600 text-white font-bold flex items-center gap-3">
+                <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                Đang thả câu... Đừng làm cá sợ!
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, limit } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
+
+        // Firebase Config
+        const firebaseConfig = {
+            projectId: "gen-lang-client-0462494933",
+            appId: "1:1047942193881:web:40badcff980da08e9ad4c8",
+            apiKey: "AIzaSyCX-swjmKkSrFb1UCU4Rti3D0h5hUjVLNE",
+            authDomain: "gen-lang-client-0462494933.firebaseapp.com",
+            firestoreDatabaseId: "ai-studio-42c6b19f-d79d-4e2b-8aed-8bf1cf023cb2"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+        const auth = getAuth(app);
+
+        // Gemini Config
+        const genAI = new GoogleGenerativeAI("AIzaSyD" + "..."); // API Key will be handled via env or placeholder
+        // Note: In this environment, the key is usually injected or available via process.env.
+        // For a single HTML file, we'll try to fetch it or use a placeholder.
+        const GEMINI_API_KEY = "AIzaSyCX-swjmKkSrFb1UCU4Rti3D0h5hUjVLNE"; // Using the same as Firebase for now if applicable, or placeholder
+        const ai = new GoogleGenerativeAI(GEMINI_API_KEY);
+
+        // State
+        let user = { uid: 'anonymous-fisher', displayName: 'Ngư dân ẩn danh' };
+        let catches = [];
+        let honoraryFishermen = [];
+        let isFishing = false;
+        let isGenerating = false;
+
+        // Initialize Lucide
+        lucide.createIcons();
+
+        // Time of Day
+        function updateTimeOfDay() {
+            const hour = new Date().getHours();
+            const body = document.body;
+            const celestial = document.getElementById('celestial-body');
+            const stars = document.getElementById('stars-container');
+            
+            if (hour >= 6 && hour < 12) {
+                body.style.background = 'var(--morning-bg)';
+                celestial.innerHTML = `
+                    <div class="absolute top-20 right-32 w-48 h-48 sun-glow rounded-full"></div>
+                    <div class="absolute top-24 right-36 w-40 h-40 rounded-full bg-gradient-to-br from-[#FFD32D] via-[#F0932B] to-[#E67E22] shadow-[0_0_60px_rgba(240,147,43,0.8)]">
+                        <div class="absolute inset-0 rounded-full shadow-[inset_-20px_-20px_40px_rgba(0,0,0,0.2)]"></div>
+                        <div class="absolute top-10 left-10 w-10 h-10 bg-white/30 rounded-full blur-md"></div>
+                    </div>`;
+                stars.classList.add('hidden');
+            } else if (hour >= 12 && hour < 19) {
+                body.style.background = 'var(--afternoon-bg)';
+                celestial.innerHTML = `
+                    <div class="absolute top-60 right-32 w-56 h-56 sun-glow opacity-80 rounded-full"></div>
+                    <div class="absolute top-64 right-36 w-40 h-40 rounded-full bg-gradient-to-br from-[#FF9A8B] via-[#FF6A88] to-[#E67E22] shadow-[0_0_80px_rgba(255,106,136,0.6)]">
+                        <div class="absolute inset-0 rounded-full shadow-[inset_-20px_-20px_40px_rgba(0,0,0,0.2)]"></div>
+                    </div>`;
+                stars.classList.add('hidden');
+            } else {
+                body.style.background = 'var(--night-bg)';
+                celestial.innerHTML = `
+                    <div class="absolute top-10 right-20 w-40 h-40 moon-glow rounded-full"></div>
+                    <div class="absolute top-14 right-24 w-32 h-32 rounded-full bg-yellow-50 shadow-[0_0_100px_rgba(255,255,255,0.4)]">
+                        <div class="absolute inset-0 rounded-full shadow-[inset_-15px_-15px_30px_rgba(0,0,0,0.1)]"></div>
+                        <div class="absolute top-8 left-8 w-6 h-6 bg-gray-200/40 rounded-full blur-sm"></div>
+                        <div class="absolute top-16 left-20 w-4 h-4 bg-gray-200/30 rounded-full blur-sm"></div>
+                    </div>`;
+                stars.classList.remove('hidden');
+                initStars();
+            }
+        }
+
+        function initStars() {
+            const container = document.getElementById('stars-container');
+            container.innerHTML = '';
+            for (let i = 0; i < 150; i++) {
+                const star = document.createElement('div');
+                star.className = 'absolute w-1 h-1 bg-white rounded-full';
+                star.style.top = Math.random() * 70 + '%';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.opacity = Math.random();
+                star.style.animation = `lantern-pulse ${2 + Math.random() * 3}s infinite`;
+                container.appendChild(star);
+            }
+        }
+
+        function initClouds() {
+            const container = document.getElementById('clouds-container');
+            for (let i = 0; i < 6; i++) {
+                const cloud = document.createElement('div');
+                cloud.className = 'cloud-container';
+                cloud.style.top = (10 + i * 12) + '%';
+                cloud.style.left = (-10 + i * 25) + '%';
+                cloud.style.animation = `float-across ${40 + i * 15}s linear infinite`;
+                cloud.innerHTML = `
+                    <div class="cloud-body">
+                        <div class="cloud-bump w-20 h-20 -top-8 left-8"></div>
+                        <div class="cloud-bump w-16 h-16 -top-4 left-20"></div>
+                        <div class="cloud-bump w-12 h-12 -top-6 left-4"></div>
+                    </div>
+                `;
+                container.appendChild(cloud);
+            }
+        }
+
+        function initSplashes() {
+            const container = document.getElementById('splashes-container');
+            for (let i = 0; i < 15; i++) {
+                const splash = document.createElement('div');
+                splash.className = 'splash-particle';
+                splash.style.left = (40 + Math.random() * 20) + '%';
+                splash.style.bottom = '10%'; /* Adjusted for 2D bottom */
+                splash.style.animationDuration = (1 + Math.random()) + 's';
+                splash.style.animationDelay = (Math.random() * 2) + 's';
+                container.appendChild(splash);
+            }
+        }
+
+        function initFloatingObjects() {
+            const container = document.getElementById('floating-container');
+            const creatures = [
+                { icon: 'fish', color: 'text-cyan-200' },
+                { icon: '🦐', isEmoji: true },
+                { icon: '🦀', isEmoji: true },
+                { icon: 'turtle', color: 'text-green-400' },
+                { icon: '🪼', isEmoji: true },
+                { icon: '🐍', isEmoji: true },
+                { icon: '🥥', isEmoji: true }
+            ];
+            
+            function spawnCreature() {
+                const obj = document.createElement('div');
+                obj.className = 'floating-object';
+                
+                const bottom = 5 + Math.random() * 60; // Keep them lower in the 70% water
+                const duration = 20 + Math.random() * 40;
+                
+                obj.style.bottom = bottom + '%';
+                obj.style.animationDuration = duration + 's';
+                
+                const creature = creatures[Math.floor(Math.random() * creatures.length)];
+                if (creature.isEmoji) {
+                    obj.innerHTML = `<span class="text-2xl opacity-60">${creature.icon}</span>`;
+                } else {
+                    obj.innerHTML = `<i data-lucide="${creature.icon}" class="${creature.color} opacity-50 w-8 h-8"></i>`;
+                }
+                
+                container.appendChild(obj);
+                lucide.createIcons();
+                
+                // Remove after animation
+                setTimeout(() => obj.remove(), duration * 1000);
+            }
+
+            // Initial burst
+            for (let i = 0; i < 15; i++) {
+                spawnCreature();
+                // Randomize initial position for the burst
+                const last = container.lastElementChild;
+                last.style.animationDelay = `-${Math.random() * 40}s`;
+            }
+
+            // Continuous spawning
+            setInterval(spawnCreature, 3000);
+        }
+
+        // Firebase Listeners
+        function initFirebase() {
+            const qCatches = query(collection(db, 'catches'), orderBy('timestamp', 'desc'), limit(20));
+            onSnapshot(qCatches, (snapshot) => {
+                catches = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            });
+
+            const qFishermen = query(collection(db, 'users'), limit(4));
+            onSnapshot(qFishermen, (snapshot) => {
+                honoraryFishermen = snapshot.docs.map(doc => doc.data());
+                renderFishermen();
+            });
+        }
+
+        function renderFishermen() {
+            const grid = document.getElementById('fishermen-grid');
+            grid.innerHTML = honoraryFishermen.map((f, i) => `
+                <div class="text-center space-y-2 group">
+                    <div class="relative w-24 h-24 mx-auto">
+                        <img src="${f.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${i}`}" alt="${f.displayName}" class="w-full h-full rounded-full border-4 border-yellow-400 shadow-lg group-hover:scale-110 transition-transform">
+                        <div class="absolute -bottom-2 -right-2 text-yellow-500"><i data-lucide="award" class="fill-yellow-500"></i></div>
+                    </div>
+                    <p class="font-bold text-blue-900 text-sm truncate">${f.displayName}</p>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        // Actions
+        window.startFishing = async () => {
+            if (isFishing) return;
+            isFishing = true;
+            document.getElementById('fishing-toast').classList.remove('hidden');
+            document.getElementById('fishing-line').classList.remove('hidden');
+            document.getElementById('fish-icon').classList.add('animate-bounce');
+
+            setTimeout(async () => {
+                const speciesList = ["Cá Chép Vàng", "Tôm Hùm Xanh", "Cua Hoàng Đế", "Cá Rồng"];
+                const species = speciesList[Math.floor(Math.random() * speciesList.length)];
+                const newCatch = {
+                    userId: user.uid,
+                    species: species,
+                    name: `${species} của ${user.displayName}`,
+                    photoURL: `https://picsum.photos/seed/${species}/400/300`,
+                    timestamp: new Date().toISOString(),
+                    description: `Một sinh vật tuyệt đẹp được bắt tại vùng biển IOT.`
+                };
+
+                await addDoc(collection(db, 'catches'), newCatch);
+                
+                // Show Result
+                document.getElementById('result-img').src = newCatch.photoURL;
+                document.getElementById('result-species').innerText = newCatch.species;
+                document.getElementById('result-desc').innerText = newCatch.description;
+                
+                isFishing = false;
+                document.getElementById('fishing-toast').classList.add('hidden');
+                document.getElementById('fishing-line').classList.add('hidden');
+                document.getElementById('fish-icon').classList.remove('animate-bounce');
+                openModal('fishing-result');
+            }, 5000);
+        };
+
+        window.openModal = (type) => {
+            document.getElementById('modal-overlay').classList.remove('hidden-modal');
+            document.getElementById('modal-upload').classList.add('hidden');
+            document.getElementById('modal-fishing-result').classList.add('hidden');
+            document.getElementById('modal-honorary').classList.add('hidden');
+            document.getElementById('modal-' + type).classList.remove('hidden');
+        };
+
+        window.closeModal = () => {
+            document.getElementById('modal-overlay').classList.add('hidden-modal');
+        };
+
+        // File Upload
+        const fileInput = document.getElementById('file-input');
+        const uploadZone = document.getElementById('upload-zone');
+        const previewImg = document.getElementById('preview-img');
+        const uploadPlaceholder = document.getElementById('upload-placeholder');
+
+        uploadZone.onclick = () => fileInput.click();
+        fileInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    previewImg.src = e.target.result;
+                    previewImg.classList.remove('hidden');
+                    uploadPlaceholder.classList.add('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+
+        // Creature Generation
+        document.getElementById('creature-form').onsubmit = async (e) => {
+            e.preventDefault();
+            if (isGenerating) return;
+            isGenerating = true;
+            const btn = document.getElementById('summon-btn');
+            btn.disabled = true;
+            btn.innerText = "Đang triệu hồi...";
+
+            const formData = new FormData(e.target);
+            const name = formData.get('name');
+            const type = formData.get('type');
+
+            try {
+                const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
+                const prompt = `Hãy mô tả một sinh vật biển huyền thoại tên là "${name}", thuộc loài "${type}". Mô tả ngắn gọn, thơ mộng bằng tiếng Việt.`;
+                const result = await model.generateContent(prompt);
+                const description = result.response.text();
+
+                const newCatch = {
+                    userId: user.uid,
+                    species: type,
+                    name: name,
+                    photoURL: `https://picsum.photos/seed/${name}${type}/400/300`,
+                    timestamp: new Date().toISOString(),
+                    description: description
+                };
+
+                await addDoc(collection(db, 'catches'), newCatch);
+                
+                document.getElementById('result-img').src = newCatch.photoURL;
+                document.getElementById('result-species').innerText = newCatch.species;
+                document.getElementById('result-desc').innerText = newCatch.description;
+                
+                closeModal();
+                openModal('fishing-result');
+            } catch (err) {
+                console.error(err);
+                alert("Có lỗi khi triệu hồi sinh vật!");
+            } finally {
+                isGenerating = false;
+                btn.disabled = false;
+                btn.innerText = "Tạo sinh vật ngay!";
+            }
+        };
+
+        // Music
+        const musicBtn = document.getElementById('music-toggle');
+        const audio = document.getElementById('bg-music');
+        musicBtn.onclick = () => {
+            if (audio.paused) audio.play();
+            else audio.pause();
+        };
+
+        // Init
+        updateTimeOfDay();
+        initClouds();
+        initSplashes();
+        initFloatingObjects();
+        initFirebase();
+        setInterval(updateTimeOfDay, 60000);
+    </script>
+</body>
+</html>
